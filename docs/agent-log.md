@@ -47,3 +47,8 @@ Feeds the write-up.
 - Historical Forecast API (`historical-forecast-api.open-meteo.com/v1/forecast`), same dates: all six fields, `boundary_layer_height` included, 1,464 rows with no nulls.
 
 **The CPCB live feed has been logged raw every hour since Oct 7, 23:20 IST.** `backend/scripts/log_cpcb.sh` runs from cron at :20 past each hour and saves gzipped XML (about 49 KB per snapshot) to `backend/data/cpcb/`, which is gitignored. Errors go to `cron.log` there. Why: live readings can't be fetched later, and we need them to check the Saturday field test. Known gap: cron doesn't run while the laptop is asleep, and it doesn't catch up missed hours afterwards.
+
+**Step 3, `app/sources/openaq.py`.** `python -m app.sources.openaq` runs it in about 33 s (mostly the polite 1 s sleeps).
+- Within 25 km of Lucknow centre: 15 PM2.5 sensors at 10 locations. All are reference monitors (`isMonitor=True`) from CPCB or UPPCB. There are no low-cost sensors on OpenAQ near the centre (to recheck from Gaurav's own centre).
+- The 6 active sensors (122355xx–122366xx) all start on **2025-02-18** and stop on 2026-10-02 08:30 UTC. The old ids at the same locations went dead around Oct 2022. So Oct–Nov 2025 history exists, but only under the new ids.
+- Lalbagh 12235522, Jul 1–Oct 2: 1,971 hours over 2 pages, unique timestamps, no null values. The paging check passed.
