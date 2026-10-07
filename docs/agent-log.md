@@ -36,3 +36,14 @@ Feeds the write-up.
 - `coordinates=lat,lon`, `radius` in metres with a maximum of 25,000. The rate-limit headers say 60/min.
 - `/v3/sensors/{id}/hours` returns `value`, `period.datetimeFrom.utc` and `coverage.percentCoverage`. Hours start at :30 UTC, which is :00 IST.
 - Locations can have an old PM2.5 sensor with no recent data (e.g. 15143) next to a new active one (122355xx), and the same site can appear more than once (Central School: 2463, 5657, 3409318). So the spike checks every PM2.5 sensor and doesn't trust location metadata.
+
+**Decisions after the outage (Gaurav):**
+- Don't wait for OpenAQ. Train on OpenAQ history up to Oct 2 **plus Oct–Nov 2025** (same season last year). The 90 days before the outage are mostly monsoon and the cleanest air of the year, but we deploy in October.
+- Train the model the way it will run. While station readings are stale, the live forecast uses a model trained **without** the station features, not one trained with them and then fed blanks. The with/without comparison stays in the backtest and the post.
+- Weather for Oct–Nov 2025 comes from Open-Meteo's **Historical Forecast API**, because the regular forecast endpoint only reaches back about 3 months.
+
+**Verified (one request each, at Lucknow city centre):**
+- Air Quality API, `domains=cams_global`, `start_date=2025-10-01`, `end_date=2025-11-30`: 1,464 hourly rows with no nulls, times in GMT by default. CAMS PM2.5 averages 55.4 µg/m³ in October and 84.3 in November, so the seasonal rise shows up even in the model.
+- Historical Forecast API (`historical-forecast-api.open-meteo.com/v1/forecast`), same dates: all six fields, `boundary_layer_height` included, 1,464 rows with no nulls.
+
+**The CPCB live feed has been logged raw every hour since Oct 7, 23:20 IST.** `backend/scripts/log_cpcb.sh` runs from cron at :20 past each hour and saves gzipped XML (about 49 KB per snapshot) to `backend/data/cpcb/`, which is gitignored. Errors go to `cron.log` there. Why: live readings can't be fetched later, and we need them to check the Saturday field test. Known gap: cron doesn't run while the laptop is asleep, and it doesn't catch up missed hours afterwards.
