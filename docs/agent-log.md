@@ -24,3 +24,15 @@ Feeds the write-up.
 - The laptop may be asleep at 5 AM, so the daily job runs the **night before**, and ntfy's scheduled delivery sends the push at wake-up time (check the ntfy docs in Phase 3). That same evening issue time is used when building the training rows and the backtest, so the backtest matches what really runs. The exact hour is still open; pick it in Phase 2.
 - Saturday add-on, only if Phases 0–3 are done: an ESP32 "khidki box" by the door (ESP32, 0.96" I2C OLED, HC-SR501 PIR, optional IR sensor for wave-to-check-in). It replaces the web page as the demo. Effect on Phase 3: also publish the window as small JSON to a second ntfy topic that the ESP32 polls over Wi-Fi. The box saves the last window it received, so a reboot or an expired ntfy message doesn't blank the screen. MicroPython, and the wiring gets explained before any code.
 - Public repo: https://github.com/Gauravkumar6617/khidki. Commits use the GitHub no-reply email so no personal address ends up in the public history. Checked with `git ls-files` before the first push: `.env` is not tracked.
+
+**Surprise: OpenAQ's CPCB feed is down across India (found while checking the API for step 3).**
+- All 10 OpenAQ locations within 25 km of Lucknow are CPCB/UPPCB stations. Every active one has `datetimeLast` = 2026-10-02 08:30 UTC.
+- The hourly data really does stop there. Sensor 12235522 (Lalbagh) has 171 of about 178 hours from Sep 25 to Oct 2, then nothing.
+- Delhi (46 CPCB locations), Kanpur and Mumbai stop at exactly the same minute. Sources that don't come from CPCB are current: AirGradient in Delhi, AirNow in Mumbai. So this is a break in OpenAQ's CPCB ingestion, not a problem with any one station or city, and switching city doesn't help.
+- An open-source project (github.com/antutroll27/delta-climate-research PR #34) says the relay has been "down since 2026-09-24". Our Lucknow data continues until Oct 2, so it may have been patchy first and then stopped completely.
+- CPCB's own public feed, `https://airquality.cpcb.gov.in/caaqms/rss_feed` (XML, no key), is live: all 6 Lucknow stations show lastupdate 07-10-2026 23:00. Per station it gives PM2.5 `Min`/`Max`/`Avg` plus `Hourly_sub_index`, and the coordinates match OpenAQ's (e.g. Lalbagh 26.8458805, 80.9365541). It is a current snapshot with no history, and the exact meaning of the fields (averaging window, sub-index or concentration) still needs checking against CPCB.
+
+**OpenAQ API facts, checked against real responses:**
+- `coordinates=lat,lon`, `radius` in metres with a maximum of 25,000. The rate-limit headers say 60/min.
+- `/v3/sensors/{id}/hours` returns `value`, `period.datetimeFrom.utc` and `coverage.percentCoverage`. Hours start at :30 UTC, which is :00 IST.
+- Locations can have an old PM2.5 sensor with no recent data (e.g. 15143) next to a new active one (122355xx), and the same site can appear more than once (Central School: 2463, 5657, 3409318). So the spike checks every PM2.5 sensor and doesn't trust location metadata.
