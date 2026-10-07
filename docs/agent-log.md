@@ -52,3 +52,19 @@ Feeds the write-up.
 - Within 25 km of Lucknow centre: 15 PM2.5 sensors at 10 locations. All are reference monitors (`isMonitor=True`) from CPCB or UPPCB. There are no low-cost sensors on OpenAQ near the centre (to recheck from Gaurav's own centre).
 - The 6 active sensors (122355xx–122366xx) all start on **2025-02-18** and stop on 2026-10-02 08:30 UTC. The old ids at the same locations went dead around Oct 2022. So Oct–Nov 2025 history exists, but only under the new ids.
 - Lalbagh 12235522, Jul 1–Oct 2: 1,971 hours over 2 pages, unique timestamps, no null values. The paging check passed.
+
+**Step 4, `scripts/spike_data.py`, run from the Lucknow city-centre default.** Took about 2 minutes. To re-run once Gaurav's own centre is in `.env`.
+```
+  sensor                           name  km provider  monitor  A_miss%  A_good%  A_mean  B_miss%  B_good%  B_mean  stale_h                      cpcb_feed
+12235522        Lalbagh, Lucknow - CPCB 1.0     CPCB     True       12       75    27.3        6       82    81.3      130        Lalbagh, Lucknow - CPCB
+12235478 Central School, Lucknow - CPCB 4.2     CPCB     True        6       80    25.9        4       84    75.6      130                              -
+12235574 Talkatora District Industries  5.6     CPCB     True        6       87    26.9        5       83    83.5      130 Talkatora District Industries 
+12235985   Gomti Nagar, Lucknow - UPPCB 6.3     CPCB     True       11       81    32.5        6       86    66.3      130   Gomti Nagar, Lucknow - UPPCB
+12236630 Kukrail Picnic Spot-1, Lucknow 7.8     CPCB     True       16       73    21.6        6       85    44.1      130 Kukrail Picnic Spot-1, Lucknow
+12236621 B R Ambedkar University, Luckn 9.1     CPCB     True       20       66    22.1        6       85    63.4      130 B R Ambedkar University, Luckn
+```
+Window A = the 90 days before the outage (2026-07-04 to 10-02). Window B = 2025-10-01 to 12-01. `good%` = hours where at least 75% of the 15-minute readings arrived.
+- **Pick: Lalbagh (sensor 12235522), 1.0 km from the centre.** 12% of hours missing in A and 6% in B, and the station is also in CPCB's live feed, so the Saturday check is possible. 5 of the 6 live sensors pass the "under 20% missing in both windows" rule; B R Ambedkar University sits exactly at 20% in A and fails.
+- **The season gap is real:** mean PM2.5 is 22–33 µg/m³ in window A (monsoon) and 44–84 in window B (Oct–Nov 2025). Lalbagh goes from 27 to 81, three times higher. Training only on the last 90 days would have learned the wrong season.
+- OpenAQ's "Central School" (12235478) is **not** in the CPCB feed within 0.5 km. The feed's "Kendriya Vidyalaya" has different coordinates, so the name guess was wrong.
+- `good%` is 66–87%, so some hours we have are based on only part of their 15-minute readings. Pick a coverage cutoff when building the features in Phase 2.
